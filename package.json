@@ -1,0 +1,47 @@
+{
+  "name": "apcon-storyblok-astro",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "APCON Astro site powered by Storyblok CMS (ported from apcon-storyblok-nuxt)",
+  "scripts": {
+    "dev": "NODE_TLS_REJECT_UNAUTHORIZED=0 astro dev --host",
+    "dev:http": "ASTRO_DEV_HTTP=true astro dev --host",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "cert:generate": "bash scripts/generate-cert.sh",
+    "cert:trust": "bash scripts/trust-cert.sh",
+    "format": "prettier --write \"**/*.{ts,vue,js,mjs,json,css,md,astro}\"",
+    "format:check": "prettier --check \"**/*.{ts,vue,js,mjs,json,css,md,astro}\""
+  },
+  "dependencies": {
+    "@astrojs/netlify": "^6.5.3",
+    "@astrojs/vue": "^5.1.0",
+    "@storyblok/vue": "^9.0.0",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.16",
+    "@tailwindcss/vite": "^4.1.4",
+    "@iconify/vue": "^5.0.0",
+    "astro": "^5.9.0",
+    "daisyui": "^5.0.9",
+    "dayjs": "^1.11.13",
+    "fuse.js": "^7.1.0",
+    "markdown-it": "^14.1.0",
+    "tailwindcss": "^4.1.4",
+    "vue": "^3.5.34"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^20.17.30",
+    "dotenv": "^17.4.2",
+    "prettier": "^3.8.3",
+    "prettier-plugin-astro": "^0.14.1",
+    "typescript": "^5.8.3",
+    "unplugin-auto-import": "^19.1.2"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "packageManager": "pnpm@10.33.2"
+}

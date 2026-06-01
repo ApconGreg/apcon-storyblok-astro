@@ -1,0 +1,21 @@
+# Astro / Netlify build outputs
+.astro
+dist
+.netlify
+
+# Node dependencies
+node_modules
+
+# Logs
+logs
+*.log
+
+# Misc
+.DS_Store
+.fleet
+.idea
+
+# Local env files
+.env
+.env.*
+!.env.example

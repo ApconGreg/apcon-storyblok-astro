@@ -1,0 +1,12 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@config/*": ["config/*"],
+      "~/*": ["src/*"]
+    },
+    "jsx": "preserve"
+  },
+  "include": ["src/**/*", "config/**/*", "src/auto-imports.d.ts"]
+}

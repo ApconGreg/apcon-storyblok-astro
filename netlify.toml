@@ -1,0 +1,21 @@
+[build]
+  command = "pnpm build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  directory = "netlify/functions"
+
+[context.branch-deploy.environment]
+  PUBLIC_STORYBLOK_VERSION = "draft"
+  PUBLIC_STORYBLOK_LIVE_PREVIEW = "true"
+  NUXT_PUBLIC_STORYBLOK_VERSION = "draft"
+  NUXT_PUBLIC_STORYBLOK_LIVE_PREVIEW = "true"
+
+[context.deploy-preview.environment]
+  PUBLIC_STORYBLOK_VERSION = "draft"
+  PUBLIC_STORYBLOK_LIVE_PREVIEW = "true"
+  NUXT_PUBLIC_STORYBLOK_VERSION = "draft"
+  NUXT_PUBLIC_STORYBLOK_LIVE_PREVIEW = "true"

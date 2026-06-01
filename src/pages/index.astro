@@ -1,0 +1,11 @@
+---
+import StoryblokPage from "../components/StoryblokPage.vue";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { fetchStoryblokStory } from "../utils/storyblok-cdn";
+
+const story = await fetchStoryblokStory("home");
+---
+
+<BaseLayout title={story?.name || "Home"}>
+    <StoryblokPage client:load slug="home" title="Home" pathname="/" initialStory={story} />
+</BaseLayout>
