@@ -422,7 +422,7 @@ const handleYoutubeIframeLoad = () => {
         <div
             v-if="isParallax && blok.image?.filename"
             ref="imageRef"
-            class="hero-bg-image test"
+            class="hero-bg-image"
             :style="heroImageStyle"
             aria-hidden="true"
         />
