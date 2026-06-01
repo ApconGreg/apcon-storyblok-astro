@@ -46,7 +46,7 @@ export const useStoryblokCdnPoll = (
             const fetched = await fetchStoryblokStory(resolvedSlug, { bustCache: true });
 
             if (cancelled || !fetched) {
-                return false;
+                return;
             }
 
             const nextStory: StoryblokPollStory = {
@@ -58,49 +58,36 @@ export const useStoryblokCdnPoll = (
             if (nextFingerprint !== contentFingerprintRef.value) {
                 contentFingerprintRef.value = nextFingerprint;
                 onStoryUpdate(nextStory);
-                return true;
-            }
-
-            return false;
-        };
-
-        const applyStoryFromCdnWithRetry = async (attempts = 6, delayMs = 400) => {
-            for (let attempt = 0; attempt < attempts; attempt += 1) {
-                if (attempt > 0) {
-                    await new Promise((resolve) => window.setTimeout(resolve, delayMs));
-                }
-
-                if (await applyStoryFromCdn()) {
-                    return;
-                }
             }
         };
 
         const syncIfStoryChanged = async (force = false) => {
+            if (document.hidden) {
+                return;
+            }
+
             const currentCv = await fetchStoryblokStoryCv(resolvedSlug, { bustCache: true });
 
-            if (cancelled || currentCv === null) {
+            if (currentCv === null) {
                 if (force) {
-                    await applyStoryFromCdnWithRetry();
+                    await applyStoryFromCdn();
                 }
 
                 return;
             }
 
-            if (lastCv === null) {
+            if (lastCv === null || force) {
                 lastCv = currentCv;
-                if (force) {
-                    await applyStoryFromCdnWithRetry();
-                }
+                await applyStoryFromCdn();
                 return;
             }
 
-            if (currentCv === lastCv && !force) {
+            if (currentCv === lastCv) {
                 return;
             }
 
             lastCv = currentCv;
-            await applyStoryFromCdnWithRetry();
+            await applyStoryFromCdn();
         };
 
         void syncIfStoryChanged(true);

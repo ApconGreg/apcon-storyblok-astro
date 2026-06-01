@@ -40,7 +40,8 @@ export const GET: APIRoute = async ({ params }) => {
         });
     }
 
-    const story = parseStoryblokCdnResponse(await response.text());
+    const payload = await response.text();
+    const story = parseStoryblokCdnResponse(payload);
 
     if (!story) {
         return new Response(JSON.stringify({ error: "Story not found" }), {
@@ -49,11 +50,17 @@ export const GET: APIRoute = async ({ params }) => {
         });
     }
 
-    return new Response(JSON.stringify(story), {
-        status: 200,
-        headers: {
-            "Content-Type": "application/json",
-            "Cache-Control": "no-store, no-cache, must-revalidate",
-        },
-    });
+    return new Response(
+        JSON.stringify({
+            cv: story.cv ?? null,
+            story: { id: story.id, name: story.name, content: story.content },
+        }),
+        {
+            status: 200,
+            headers: {
+                "Content-Type": "application/json",
+                "Cache-Control": "no-store, no-cache, must-revalidate",
+            },
+        }
+    );
 };

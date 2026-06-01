@@ -137,14 +137,42 @@ const liveStory = ref<StoryblokPreviewStory>(props.story);
 const inVisualEditor = ref(false);
 const useCdnStory = ref(false);
 const cdnStory = ref<StoryblokPreviewStory>(props.story);
+let visualEditorSaveGuardUntil = 0;
 
-if (typeof window !== "undefined") {
+const syncPreviewContext = () => {
     inVisualEditor.value = isVisualEditorContext();
     useCdnStory.value = !inVisualEditor.value && shouldSyncStoryFromCdn();
+};
+
+if (typeof window !== "undefined") {
+    syncPreviewContext();
 }
 
+const cloneLiveContent = (content: string | Record<string, unknown>) => {
+    if (typeof content === "string") {
+        return content;
+    }
+
+    return structuredClone(content);
+};
+
 const applyLiveStory = (nextStory: StoryblokPreviewStory) => {
-    liveStory.value = nextStory;
+    liveStory.value = {
+        id: nextStory.id,
+        content: cloneLiveContent(nextStory.content),
+    };
+};
+
+const bridgeEventAppliesToPreview = (
+    eventStoryId: ReturnType<typeof normalizeStoryId>,
+    bridgeStoryId: string
+) => {
+    if (storyIdsMatch(eventStoryId, bridgeStoryId)) {
+        return true;
+    }
+
+    // Visual Editor iframe previews a single story; bridge numeric ids can lose precision.
+    return inVisualEditor.value;
 };
 
 const handleCdnStoryUpdate = (nextStory: StoryblokPreviewStory) => {
@@ -161,6 +189,14 @@ const syncSavedStory = async (
 
     if (isUsableStoryContent(previewContent)) {
         applyLiveStory({ id: storyId, content: previewContent as Record<string, unknown> });
+    }
+
+    visualEditorSaveGuardUntil = Date.now() + 3000;
+
+    // Visual Editor iframe: bridge save payload is authoritative. CDN often lags behind
+    // save; fetching here replaces live edits with stale content (same blok uids, old field values).
+    if (inVisualEditor.value) {
+        return;
     }
 
     const fetched = await fetchSavedStoryFromCdn(slug);
@@ -189,6 +225,8 @@ const handleDevContentChanged = (event: Event) => {
 };
 
 onMounted(async () => {
+    syncPreviewContext();
+
     if (inVisualEditor.value) {
         const fetched = await fetchStoryblokStory(props.slug, { bustCache: true });
         if (fetched && isUsableStoryContent(fetched.content)) {
@@ -219,23 +257,27 @@ onMounted(async () => {
             const bridge = new Bridge(props.bridgeOptions || DEFAULT_BRIDGE_OPTIONS);
             bridge.on(["input", "change", "published"], (event: StoryblokBridgeEvent) => {
                 const eventStoryId = normalizeStoryId(event.story?.id ?? event.storyId);
+
                 if (
                     event.action === "input" &&
-                    storyIdsMatch(eventStoryId, bridgeStoryId) &&
-                    event.story?.content
+                    event.story?.content &&
+                    bridgeEventAppliesToPreview(eventStoryId, bridgeStoryId)
                 ) {
                     applyLiveStory({ id: bridgeStoryId, content: event.story.content });
                     return;
                 }
+
                 if (
                     (event.action === "change" || event.action === "published") &&
-                    storyIdsMatch(eventStoryId, bridgeStoryId)
+                    bridgeEventAppliesToPreview(eventStoryId, bridgeStoryId)
                 ) {
                     void syncSavedStory(bridgeStoryId, props.slug, event.story?.content);
                 }
             });
-        } catch {
-            // Bridge unavailable outside Visual Editor.
+        } catch (error) {
+            if (import.meta.env.DEV) {
+                console.warn("[Storyblok] Visual Editor bridge failed to connect.", error);
+            }
         }
         return;
     }
@@ -271,7 +313,7 @@ useStoryblokCdnPoll(
     (nextStory) => {
         // Visual Editor iframe on dev--: bridge handles live typing; CDN poll picks up saves.
         if (inVisualEditor.value) {
-            if (isNetlifyBranchPreviewHost()) {
+            if (isNetlifyBranchPreviewHost() && Date.now() >= visualEditorSaveGuardUntil) {
                 applyLiveStory(nextStory);
             }
 

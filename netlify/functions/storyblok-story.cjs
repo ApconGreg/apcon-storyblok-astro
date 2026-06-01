@@ -86,7 +86,11 @@ exports.handler = async (event) => {
             body: JSON.stringify({
                 cv: data.cv ?? null,
                 story: data.story
-                    ? { id: data.story.id, name: data.story.name, content: data.story.content }
+                    ? {
+                          id: String(data.story.id),
+                          name: data.story.name,
+                          content: data.story.content,
+                      }
                     : null,
             }),
         };

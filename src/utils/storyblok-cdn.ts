@@ -18,6 +18,14 @@ type FetchStoryblokStoryOptions = {
     bustCache?: boolean;
 };
 
+type StoryblokProxyPayload = {
+    cv?: number;
+    story?: { id?: number | string; name?: string; content: Record<string, unknown> };
+    id?: number | string;
+    name?: string;
+    content?: Record<string, unknown>;
+};
+
 export const getStoryblokApiBase = (region?: string) => {
     const normalized = region?.toLowerCase();
 
@@ -59,6 +67,33 @@ export const parseStoryblokCdnResponse = (payload: string): StoryblokCdnStory | 
         id,
         name: data.story.name,
         content: data.story.content,
+        cv: data.cv,
+    };
+};
+
+export const parseServerProxyResponse = (
+    data: StoryblokProxyPayload,
+    rawPayload?: string
+): StoryblokCdnStory | null => {
+    const story = data.story ?? (data.content ? { id: data.id, name: data.name, content: data.content } : null);
+
+    if (!story?.content) {
+        return null;
+    }
+
+    const id =
+        (rawPayload ? extractStoryIdFromCdnPayload(rawPayload) : null) ??
+        normalizeStoryId(story.id) ??
+        "";
+
+    if (!id) {
+        return null;
+    }
+
+    return {
+        id,
+        name: story.name,
+        content: story.content,
         cv: data.cv,
     };
 };
@@ -115,11 +150,9 @@ export const shouldPollStoryblokCdn = () => {
     return shouldSyncStoryFromCdn();
 };
 
-const isClient = () => typeof window !== "undefined";
-
-const shouldUseNetlifyStoryProxy = () => isClient() && isNetlifyBranchPreviewHost();
-
-const shouldUseNetlifyStoryApiProxy = (hostname?: string) => import.meta.env.SSR && isNetlifyBranchPreviewHost(hostname);
+const shouldUseServerStoryProxy = () =>
+    typeof window !== "undefined" &&
+    (isNetlifyBranchPreviewHost() || isStoryblokLivePreviewEnabled());
 
 const shouldUseDevStoryProxy = () => import.meta.env.DEV && !isNetlifyBranchPreviewHost();
 
@@ -128,9 +161,9 @@ const fetchStoryViaRuntimeConfig = async (
     _options: FetchStoryblokStoryOptions = {}
 ): Promise<StoryblokCdnStory | null> => {
     try {
-        const token = publicSiteConfig.storyblokAccessToken;
-        const version = publicSiteConfig.storyblokVersion || "draft";
-        const region = publicSiteConfig.storyblokRegion;
+        const token = publicSiteConfig.storyblokAccessToken || getStoryblokAccessToken();
+        const version = publicSiteConfig.storyblokVersion || getStoryblokVersion() || "draft";
+        const region = publicSiteConfig.storyblokRegion || getStoryblokRegion();
 
         if (!token) {
             return null;
@@ -151,6 +184,35 @@ const fetchStoryViaRuntimeConfig = async (
     }
 };
 
+const fetchStoryViaServerProxy = async (slug: string): Promise<StoryblokCdnStory | null> => {
+    const cacheBust = `_t=${Date.now()}`;
+    const endpoints = [
+        `/api/storyblok/${encodeURIComponent(slug)}?${cacheBust}`,
+        `/.netlify/functions/storyblok-story?slug=${encodeURIComponent(slug)}&${cacheBust}`,
+    ];
+
+    for (const endpoint of endpoints) {
+        try {
+            const response = await fetch(endpoint, { cache: "no-store" });
+
+            if (!response.ok) {
+                continue;
+            }
+
+            const payload = await response.text();
+            const story = parseServerProxyResponse(JSON.parse(payload) as StoryblokProxyPayload, payload);
+
+            if (story) {
+                return story;
+            }
+        } catch {
+            // Try the next endpoint.
+        }
+    }
+
+    return null;
+};
+
 const fetchStoryViaDevProxy = async (
     slug: string,
     options: FetchStoryblokStoryOptions = {}
@@ -165,23 +227,12 @@ const fetchStoryViaDevProxy = async (
             return null;
         }
 
-        return (await response.json()) as StoryblokCdnStory;
+        const payload = await response.text();
+
+        return parseServerProxyResponse(JSON.parse(payload) as StoryblokProxyPayload, payload);
     } catch {
         return null;
     }
-};
-
-const fetchStoryViaNetlifyProxy = async (slug: string): Promise<StoryblokCdnStory | null> => {
-    const response = await fetch(
-        `/.netlify/functions/storyblok-story?slug=${encodeURIComponent(slug)}&_t=${Date.now()}`,
-        { cache: "no-store" }
-    );
-
-    if (!response.ok) {
-        return null;
-    }
-
-    return parseStoryblokCdnResponse(await response.text());
 };
 
 export const fetchStoryblokStoryCv = async (slug: string, options?: FetchStoryblokStoryOptions) => {
@@ -198,16 +249,17 @@ export const fetchStoryblokStory = async (
         return null;
     }
 
-    if (shouldUseNetlifyStoryApiProxy(options.hostname)) {
-        return fetchStoryViaDevProxy(slug, options);
+    if (import.meta.env.SSR) {
+        return fetchStoryViaRuntimeConfig(slug, options);
     }
 
-    if (shouldUseNetlifyStoryProxy()) {
-        return fetchStoryViaNetlifyProxy(slug);
+    if (shouldUseServerStoryProxy()) {
+        return fetchStoryViaServerProxy(slug);
     }
 
     if (shouldUseDevStoryProxy()) {
         const proxied = await fetchStoryViaDevProxy(slug, options);
+
         if (proxied) {
             return proxied;
         }
