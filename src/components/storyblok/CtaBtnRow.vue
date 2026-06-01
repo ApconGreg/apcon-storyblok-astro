@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { StoryblokComponent } from "@storyblok/vue";
 import type { StoryblokBlok, StoryblokComponentProps } from "./types";
-import { getBtnRowSpacingClass, resolveBlokClasses, type StoryblokDomFields } from "./utils";
+import { getBtnRowSpacingClass, resolveBlokClasses, type StoryblokDomFields, type StoryblokMultiOptionValue } from "./utils";
 
 type CtaBtnRowBlok = StoryblokBlok &
     StoryblokDomFields & {
         the_buttons?: StoryblokBlok[];
-        btn_row_spacing?: string | { value?: string };
+        btn_row_spacing?: StoryblokMultiOptionValue;
     };
 
 defineProps<StoryblokComponentProps<CtaBtnRowBlok>>();

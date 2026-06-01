@@ -101,6 +101,26 @@ export const resolveStoryblokOptionValue = (value?: string | { value?: string })
     return undefined;
 };
 
+export type StoryblokOptionValue = string | { value?: string };
+export type StoryblokMultiOptionValue = StoryblokOptionValue | StoryblokOptionValue[] | null;
+
+/** Resolves Storyblok single- or multi-option fields to a list of option values. */
+export const resolveStoryblokMultiOptionValues = (value?: StoryblokMultiOptionValue): string[] => {
+    if (!value) {
+        return [];
+    }
+
+    if (Array.isArray(value)) {
+        return value
+            .map((item) => resolveStoryblokOptionValue(item))
+            .filter((item): item is string => Boolean(item));
+    }
+
+    const single = resolveStoryblokOptionValue(value);
+
+    return single ? [single] : [];
+};
+
 export const resolveBgBlendMode = (
     blend?: string | { value?: string }
 ): CSSProperties["backgroundBlendMode"] | undefined => {
@@ -294,15 +314,11 @@ const BTN_ROW_SPACING_CLASSES = {
 
 export type BtnRowSpacing = keyof typeof BTN_ROW_SPACING_CLASSES;
 
-/** Maps cta-btn-row `btn_row_spacing` Storyblok option to a CSS class (styles in global.css). */
-export const getBtnRowSpacingClass = (spacing?: string | { value?: string }) => {
-    const value = resolveStoryblokOptionValue(spacing) as BtnRowSpacing | undefined;
+/** Maps cta-btn-row `btn_row_spacing` Storyblok multi-option values to CSS classes (styles in global.css). */
+export const getBtnRowSpacingClass = (spacing?: StoryblokMultiOptionValue) => {
+    const classes = resolveStoryblokMultiOptionValues(spacing)
+        .map((value) => BTN_ROW_SPACING_CLASSES[value as BtnRowSpacing])
+        .filter(Boolean);
 
-    if (!value) {
-        return undefined;
-    }
-
-    const className = BTN_ROW_SPACING_CLASSES[value];
-
-    return className || undefined;
+    return classes.length ? classes.join(" ") : undefined;
 };

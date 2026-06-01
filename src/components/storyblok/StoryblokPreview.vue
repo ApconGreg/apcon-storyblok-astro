@@ -3,6 +3,7 @@ import { StoryblokComponent } from "@storyblok/vue";
 import { useStoryblokCdnPoll } from "~/composables/useStoryblokCdnPoll";
 import {
     fetchStoryblokStory,
+    isNetlifyBranchPreviewHost,
     isVisualEditorContext,
     parseStoryContent,
     serializeStoryContent,
@@ -268,9 +269,16 @@ useStoryblokCdnPoll(
     toRef(props, "slug"),
     liveStory,
     (nextStory) => {
-        if (!inVisualEditor.value) {
-            handleCdnStoryUpdate(nextStory);
+        // Visual Editor iframe on dev--: bridge handles live typing; CDN poll picks up saves.
+        if (inVisualEditor.value) {
+            if (isNetlifyBranchPreviewHost()) {
+                applyLiveStory(nextStory);
+            }
+
+            return;
         }
+
+        handleCdnStoryUpdate(nextStory);
     }
 );
 

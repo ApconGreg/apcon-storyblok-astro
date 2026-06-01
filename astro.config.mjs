@@ -9,6 +9,12 @@ import AutoImport from "unplugin-auto-import/vite";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const useHttps = process.env.ASTRO_DEV_HTTP !== "true";
+const httpsConfig = useHttps
+    ? {
+          key: readFileSync(`${root}/certs/localhost-key.pem`),
+          cert: readFileSync(`${root}/certs/localhost.pem`),
+      }
+    : undefined;
 
 /** @type {import('astro/config').AstroUserConfig} */
 export default defineConfig({
@@ -23,6 +29,9 @@ export default defineConfig({
                 dts: "src/auto-imports.d.ts",
             }),
         ],
+        server: {
+            https: httpsConfig,
+        },
         resolve: {
             alias: {
                 "@config": `${root}/config`,
@@ -35,13 +44,6 @@ export default defineConfig({
     },
     server: {
         port: 3000,
-        ...(useHttps
-            ? {
-                  https: {
-                      key: readFileSync(`${root}/certs/localhost-key.pem`),
-                      cert: readFileSync(`${root}/certs/localhost.pem`),
-                  },
-              }
-            : {}),
+        https: httpsConfig,
     },
 });
