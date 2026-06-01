@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import MarkdownIt from "markdown-it";
 import { renderRichText, StoryblokComponent } from "@storyblok/vue";
+import MarkdownIt from "markdown-it";
 import { HERO_PARALLAX_CONFIG, useHeroParallax } from "~/composables/useHeroParallax";
 import { scrollToMain } from "~/utils/scrollToMain";
 import type { StoryblokAsset, StoryblokBlok, StoryblokComponentProps, StoryblokLink, StoryblokRichtext } from "./types";
@@ -167,12 +167,12 @@ const heroSectionStyle = computed(() =>
 const heroImageStyle = computed(() =>
     isParallax.value && props.blok.image?.filename
         ? {
-              backgroundImage: `url(${props.blok.image.filename})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundRepeat: "no-repeat",
-              ...resolveMediaBlendStyle(props.blok.image, props.blok.bg_blend),
-          }
+            backgroundImage: `url(${props.blok.image.filename})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            ...resolveMediaBlendStyle(props.blok.image, props.blok.bg_blend),
+        }
         : undefined
 );
 const videoBlendStyle = computed(() =>
